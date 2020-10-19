@@ -1,0 +1,42 @@
+import pandas as pd 
+from pandas_datareader import data as pdr
+import yfinance as yf #yahoo finance stock data
+import datetime
+
+from textblob import TextBlob
+import re
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score,classification_report
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+
+yf.pdr_override() 
+
+start=-1096
+
+def subjectivity(txt):
+    return TextBlob(txt).sentiment.subjectivity
+
+def polarity(txt):
+    return TextBlob(txt).sentiment.polarity
+
+news=remove_na_and_date(pd.read_csv("../Data/Combined_News_DJIA.csv",sep=","))
+reddit=remove_na_and_date(pd.read_csv("../Data/RedditNews.csv",sep=","))
+
+merge=news.merge(comp_close["MSFT"],how="inner",left_index=True,right_index=True)
+
+headlines=[]
+for row in range(0,len(merge.index)):
+    headlines.append(" ".join(str(x) for x in merge.iloc[row,1:26]))
+
+clean_headlines=[]
+for i in range(0,len(headlines)):
+    clean_headlines.append(re.sub("b[(')]",'',headlines[i]))
+    clean_headlines[i]=re.sub('b[(")]','',clean_headlines[i])
+    clean_headlines[i]=re.sub("\'",'',clean_headlines[i])
+
+merge["Combined news"]=clean_headlines
+
+merge["Subjectivity"]=merge["Combined news"].apply(subjectivity)
+merge["Polarity"]=merge["Combined news"].apply(polarity)
